@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Performance_Webinar
 {
@@ -25,40 +21,48 @@ namespace Performance_Webinar
 
     public class PerformanceTest : IPerformanceTest
     {
-        private const int DEFAULT_REPITITIONS = 10;
+        private const int DEFAULT_REPETITIONS = 10;
+
         public string Name { get; }
+
         public string Description { get; }
+
         public int Iterations { get; set; }
+
         public bool RunBaseline { get; set; }
+
         protected virtual bool MeasureTestA()
         {
             return false;
         }
+
         protected virtual bool MeasureTestB()
         {
             return false;
         }
+
         protected virtual bool MeasureTestC()
         {
             return false;
         }
 
-        public PerformanceTest(string name, string description, int iterations)
+        public PerformanceTest(string name, string description, int interactions)
         {
             Name = name;
             Description = description;
-            Iterations = iterations;
+            Iterations = interactions;
         }
 
         public (int, int, int) Measure()
         {
             long totalA = 0, totalB = 0, totalC = 0;
+
             var stopwatch = new Stopwatch();
 
-            //run baseline tests
+            // run baseline tests
             if (RunBaseline)
             {
-                for (long i = 0; i < DEFAULT_REPITITIONS; i++)
+                for (long i = 0; i < DEFAULT_REPETITIONS; i++)
                 {
                     stopwatch.Restart();
                     var implemented = MeasureTestA();
@@ -66,10 +70,10 @@ namespace Performance_Webinar
                     if (implemented)
                         totalA += stopwatch.ElapsedMilliseconds;
                 }
-
             }
-            //run optimized test B
-            for (long i = 0; i < DEFAULT_REPITITIONS; i++)
+
+            // run optimized test B
+            for (long i = 0; i < DEFAULT_REPETITIONS; i++)
             {
                 stopwatch.Restart();
                 var implemented = MeasureTestB();
@@ -78,8 +82,8 @@ namespace Performance_Webinar
                     totalB += stopwatch.ElapsedMilliseconds;
             }
 
-            //run optimized test c
-            for (long i = 0; i < DEFAULT_REPITITIONS; i++)
+            // run optimized tests C
+            for (long i = 0; i < DEFAULT_REPETITIONS; i++)
             {
                 stopwatch.Restart();
                 var implemented = MeasureTestC();
@@ -90,12 +94,9 @@ namespace Performance_Webinar
 
             // return results
             return (
-                (int)(totalA / DEFAULT_REPITITIONS),
-                (int)(totalB / DEFAULT_REPITITIONS),
-                (int)(totalC / DEFAULT_REPITITIONS)
-                );
-
-
+                (int)(totalA / DEFAULT_REPETITIONS),
+                (int)(totalB / DEFAULT_REPETITIONS),
+                (int)(totalC / DEFAULT_REPETITIONS));
         }
     }
 }

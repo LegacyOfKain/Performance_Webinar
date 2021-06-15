@@ -1,116 +1,116 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Performance_Webinar.Tests
 {
-    public class PropertiesTest : PerformanceTest
-    {
-        //constants
-        private const int DEFAULT_ITERATIONS = 5_000_000;
+	public class PropertiesTest : PerformanceTest
+	{
+		private const int DEFAULT_ITERATIONS = 5_000_000;
 
-        public delegate object PropertyGetDelegate(object obj);
-        public delegate void PropertySetDelegate(object obj,object value);
+		public delegate object PropertyGetDelegate(object obj);
 
-        public PropertiesTest() : base("Property access", "A:reflection, B:dynamic CIL, C:compile-time", DEFAULT_ITERATIONS)
-        {
+		public delegate void PropertySetDelegate(object obj, object value);
 
-        }
+		public PropertiesTest() : base("Property access", "A:reflection, B:dynamic CIL, C:compile-time", DEFAULT_ITERATIONS)
+		{
+		}
 
-        protected PropertyGetDelegate GetPropertyGetter(string typeName, string propertyName)
-        {
-            //get the property get method
-            Type t = Type.GetType(typeName);
-            PropertyInfo pi = t.GetProperty(propertyName);
-            MethodInfo getter = pi.GetGetMethod();
+		protected PropertyGetDelegate GetPropertyGetter(string typeName, string propertyName)
+		{
+			// get the property get method
+			Type t = Type.GetType(typeName);
+			PropertyInfo pi = t.GetProperty(propertyName);
+			MethodInfo getter = pi.GetGetMethod();
 
-            //create a new dynamic method that calls the property getter
-            DynamicMethod dm = new("GetValue", typeof(object), new Type[] { typeof(object) }, typeof(object), true);
-            ILGenerator lgen = dm.GetILGenerator();
-            
-            //emit CIL
-            lgen.Emit(OpCodes.Ldarg_0);
-            lgen.Emit(OpCodes.Call, getter);
+			// create a new dynamic method that calls the property getter
+			DynamicMethod dm = new DynamicMethod("GetValue", typeof(object), new Type[] { typeof(object) }, typeof(object), true);
+			ILGenerator lgen = dm.GetILGenerator();
 
-            if(getter.ReturnType.GetTypeInfo().IsValueType)
-            {
-                lgen.Emit(OpCodes.Box, getter.ReturnType);
-            }
+			// emit CIL
+			lgen.Emit(OpCodes.Ldarg_0);
+			lgen.Emit(OpCodes.Call, getter);
 
-            lgen.Emit(OpCodes.Ret);
+			if (getter.ReturnType.GetTypeInfo().IsValueType)
+			{
+				lgen.Emit(OpCodes.Box, getter.ReturnType);
+			}
 
-            return dm.CreateDelegate(typeof(PropertyGetDelegate)) as PropertyGetDelegate;
-        }
-        protected PropertySetDelegate GetPropertySetter(string typeName, string propertyName)
-        {
-            //get the property get method
-            Type t = Type.GetType(typeName);
-            PropertyInfo pi = t.GetProperty(propertyName);
-            MethodInfo setter = pi.GetSetMethod(false);
+			lgen.Emit(OpCodes.Ret);
 
-            //create a new dynamic method that calls the property setter
-            DynamicMethod dm = new("SetValue", typeof(object), new Type[] { typeof(object) }, typeof(object), true);
-            ILGenerator lgen = dm.GetILGenerator();
+			return dm.CreateDelegate(typeof(PropertyGetDelegate)) as PropertyGetDelegate;
+		}
 
-            //emit CIL
-            lgen.Emit(OpCodes.Ldarg_0);
-            lgen.Emit(OpCodes.Ldarg_1);
+		protected PropertySetDelegate GetPropertySetter(string typeName, string propertyName)
+		{
+			// get the property get method
+			Type t = Type.GetType(typeName);
+			PropertyInfo pi = t.GetProperty(propertyName);
+			MethodInfo setter = pi.GetSetMethod(false);
 
-            Type parameterType = setter.GetParameters()[0].ParameterType;
+			// create a new dynamic method that calls the property setter
+			DynamicMethod dm = new DynamicMethod("SetValue", typeof(void), new Type[] { typeof(object), typeof(object) }, typeof(object), true);
+			ILGenerator lgen = dm.GetILGenerator();
 
-            if (parameterType.GetTypeInfo().IsValueType)
-            {
-                lgen.Emit(OpCodes.Unbox_Any, parameterType);
-            }
+			// emit CIL
+			lgen.Emit(OpCodes.Ldarg_0);
+			lgen.Emit(OpCodes.Ldarg_1);
 
-            lgen.Emit(OpCodes.Call, setter);
-            lgen.Emit(OpCodes.Ret);
+			Type parameterType = setter.GetParameters()[0].ParameterType;
 
-            return dm.CreateDelegate(typeof(PropertySetDelegate)) as PropertySetDelegate;
-        }
-        protected override bool MeasureTestA()
-        {
-            //get property using reflection
-            var sb = new StringBuilder("Mark Duncan Farragher");
-            PropertyInfo pi = sb.GetType().GetProperty("Length");
-            for (int i = 0; i < Iterations; i++)
-            {
-                var length = pi.GetValue(sb);
-                if (!21.Equals(length))
-                    throw new InvalidOperationException($"Invalid length {length} returned");
-            }
-            return true;
-        }
+			if (parameterType.GetTypeInfo().IsValueType)
+			{
+				lgen.Emit(OpCodes.Unbox_Any, parameterType);
+			}
 
-        protected override bool MeasureTestB()
-        {
-            //get property using dynamic CIL
-            var sb = new StringBuilder("Mark Duncan Farragher");
-            var getter = GetPropertyGetter("System.Text.StringBuilder", "Length");
-            for (int i = 0; i < Iterations; i++)
-            {
-                var length = getter(sb);
-                if (!21.Equals(length))
-                    throw new InvalidOperationException($"Invalid length {length} returned");
-            }
-            return true;
-        }
+			lgen.Emit(OpCodes.Call, setter);
+			lgen.Emit(OpCodes.Ret);
 
-        protected override bool MeasureTestC()
-        {
-            //get property using compiled code
-            var sb = new StringBuilder("Mark Duncan Farragher");
-            for (int i = 0; i < Iterations; i++)
-            {
-                var length = sb.Length;
-                if (!21.Equals(length))
-                    throw new InvalidOperationException($"Invalid length {length} returned");
-            }
-            return true;
-        }
-    }
+			return dm.CreateDelegate(typeof(PropertySetDelegate)) as PropertySetDelegate;
+		}
+
+		protected override bool MeasureTestA()
+		{
+			// get property using reflection
+			var sb = new StringBuilder("Mark Duncan Farragher");
+			PropertyInfo pi = sb.GetType().GetProperty("Length");
+			for (int i = 0; i < Iterations; i++)
+			{
+				var length = pi.GetValue(sb);
+				if (!21.Equals(length))
+					throw new InvalidOperationException($"Invalid length {length} returned");
+			}
+			return true;
+		}
+
+		protected override bool MeasureTestB()
+		{
+			// get property using dynamic cil
+			var sb = new StringBuilder("Mark Duncan Farragher");
+			var getter = GetPropertyGetter("System.Text.StringBuilder", "Length");
+			for (int i = 0; i < Iterations; i++)
+			{
+				var length = getter(sb);
+				if (!21.Equals(length))
+					throw new InvalidOperationException($"Invalid length {length} returned");
+			}
+			return true;
+		}
+
+		protected override bool MeasureTestC()
+		{
+			// get property using compiled code
+			var sb = new StringBuilder("Mark Duncan Farragher");
+			for (int i = 0; i < Iterations; i++)
+			{
+				var length = sb.Length;
+				if (!21.Equals(length))
+					throw new InvalidOperationException($"Invalid length {length} returned");
+			}
+			return true;
+		}
+
+	}
 }
